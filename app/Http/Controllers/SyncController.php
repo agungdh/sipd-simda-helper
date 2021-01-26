@@ -8,6 +8,43 @@ use DB;
 
 class SyncController extends Controller
 {
+    public function gasLurrr(Request $request)
+    {
+        foreach (DB::connection('mysql_simda_sipd')->table('data_sub_keg_bl')->where([
+            'active' => 1,
+            'tahun_anggaran' => $request->tahun_anggaran,
+        ])->get() as $key => $value) {
+            $request->merge(['kode_sub_giat' => $value->kode_sub_giat]);
+
+            $this->subKegiatan($request);
+        }
+    }
+
+    public function kegiatan(Request $request)
+    {
+        if (!$request->kode_giat || !$request->tahun_anggaran) {
+            return response()->json([], 400);
+        }
+
+        $SIPD_Kegiatans = DB::connection('mysql_simda_sipd')->table('data_sub_keg_bl')->where([
+            'active' => 1,
+            'tahun_anggaran' => $request->tahun_anggaran,
+            'kode_giat' => $request->kode_giat,
+        ])->get();
+
+        $actions = [];
+
+        foreach ($SIPD_Kegiatans as $SIPD_Kegiatan) {
+            $request->merge(['kode_sub_giat' => $SIPD_Kegiatan->kode_sub_giat]);
+            
+            $actions[] = $request->all();
+        
+            $request->merge(['response' => $this->subKegiatan($request)]);
+        }
+
+        return response()->json($actions);
+    }
+
     public function subKegiatan(Request $request)
     {
         if (!$request->kode_sub_giat || !$request->tahun_anggaran) {
